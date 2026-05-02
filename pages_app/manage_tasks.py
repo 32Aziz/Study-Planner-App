@@ -133,30 +133,25 @@ def show_manage_tasks() -> None:
             st.markdown("---")
             e_col1, e_col2 = st.columns(2)
 
-            # Helper to clear confirmation when any field changes
-            def on_field_change():
-                st.session_state[f"confirm_update_{selected_id_edit}"] = False
-
             with e_col1:
-                new_title = st.text_input("Title", value=current_task["title"], on_change=on_field_change, key=f"title_{selected_id_edit}")
+                new_title = st.text_input("Title", value=current_task["title"], key=f"title_{selected_id_edit}")
                 
                 st.write("**Subject Management**")
                 existing_subjects = db.get_distinct_subjects()
                 try:
                     subj_idx = existing_subjects.index(current_task["subject"])
-                    subject_mode = st.radio("Subject Mode", ["Existing", "Rename/New"], horizontal=True, key=f"edit_mode_{selected_id_edit}", on_change=on_field_change)
+                    subject_mode = st.radio("Subject Mode", ["Existing", "Rename/New"], horizontal=True, key=f"edit_mode_{selected_id_edit}")
                     if subject_mode == "Existing":
-                        new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx, on_change=on_field_change, key=f"subj_sel_{selected_id_edit}")
+                        new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx, key=f"subj_sel_{selected_id_edit}")
                     else:
-                        new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"], on_change=on_field_change, key=f"subj_new_{selected_id_edit}")
+                        new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"], key=f"subj_new_{selected_id_edit}")
                 except:
-                    new_subject = st.text_input("Subject", value=current_task["subject"], on_change=on_field_change, key=f"subj_fail_{selected_id_edit}")
+                    new_subject = st.text_input("Subject", value=current_task["subject"], key=f"subj_fail_{selected_id_edit}")
 
                 new_priority = st.selectbox(
                     "Priority",
                     utils.PRIORITY_LEVELS,
                     index=utils.PRIORITY_LEVELS.index(current_task["priority"]),
-                    on_change=on_field_change,
                     key=f"prio_{selected_id_edit}"
                 )
 
@@ -166,24 +161,37 @@ def show_manage_tasks() -> None:
                 except:
                     curr_due_date = date.today()
 
-                new_due_date = st.date_input("Due Date", value=curr_due_date, on_change=on_field_change, key=f"date_{selected_id_edit}")
+                new_due_date = st.date_input("Due Date", value=curr_due_date, key=f"date_{selected_id_edit}")
                 new_hours = st.number_input(
                     "Est. Hours",
                     min_value=0.5,
                     value=float(current_task["estimated_hours"]),
                     step=0.5,
-                    on_change=on_field_change,
                     key=f"hours_{selected_id_edit}"
                 )
                 new_status = st.selectbox(
                     "Status",
                     utils.STATUS_OPTIONS,
                     index=utils.STATUS_OPTIONS.index(current_task["status"]),
-                    on_change=on_field_change,
                     key=f"status_{selected_id_edit}"
                 )
 
-            new_description = st.text_area("Description", value=current_task["description"], on_change=on_field_change, key=f"desc_{selected_id_edit}")
+            new_description = st.text_area("Description", value=current_task["description"], key=f"desc_{selected_id_edit}")
+
+            # --- Logic to check if any field has changed since "Save" was clicked ---
+            current_vals = {
+                "title": new_title,
+                "subject": new_subject,
+                "priority": new_priority,
+                "due_date": new_due_date,
+                "hours": new_hours,
+                "status": new_status,
+                "desc": new_description
+            }
+            
+            # If current values don't match what was "saved" for review, hide the review
+            if st.session_state.get(f"last_edit_vals_{selected_id_edit}") != current_vals:
+                st.session_state[f"confirm_update_{selected_id_edit}"] = False
 
             st.write("---")
             # Step 1: Initial Action Button
@@ -195,6 +203,7 @@ def show_manage_tasks() -> None:
                 )
                 if update_triggered:
                     st.session_state[f"confirm_update_{selected_id_edit}"] = True
+                    st.session_state[f"last_edit_vals_{selected_id_edit}"] = current_vals
                     st.rerun()
             
             # Step 2: Confirmation Dialog
@@ -318,9 +327,6 @@ def show_manage_tasks() -> None:
                     st.toast(f"🗑️ Task deleted successfully", icon="🗑️")
                     st.success(f"✅ Task has been removed. Refreshing in 3s...")
                     st.session_state[f"confirm_delete_{selected_id_delete}"] = False
-                    # Explicitly uncheck the checkbox for the next time
-                    if f"check_del_{selected_id_delete}" in st.session_state:
-                        st.session_state[f"check_del_{selected_id_delete}"] = False
                     import time
                     time.sleep(3)
                     st.rerun()
