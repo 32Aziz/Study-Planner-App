@@ -125,10 +125,10 @@ def show_analytics() -> None:
             plot_bgcolor="rgba(0,0,0,0)",
             font_color="#e8e8f0",
             showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            margin=dict(t=0, b=0, l=0, r=0)
+            legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5),
+            margin=dict(t=20, b=50, l=0, r=0)
         )
-        st.plotly_chart(fig_p, use_container_width=True)
+        st.plotly_chart(fig_p, use_container_width=True, config={'displayModeBar': False})
     
     with row_p2:
         st.subheader("💡 Analysis Insight")

@@ -69,6 +69,8 @@ def validate_task_input(
 
     if not subject or not subject.strip():
         errors.append("Subject is required.")
+    elif len(subject.strip()) < 6:
+        errors.append("Subject name must be at least 6 characters.")
 
     if due_date is None:
         errors.append("Due date is required.")

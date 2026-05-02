@@ -126,25 +126,30 @@ def show_manage_tasks() -> None:
             st.markdown("---")
             e_col1, e_col2 = st.columns(2)
 
+            # Helper to clear confirmation when any field changes
+            def on_field_change():
+                st.session_state[f"confirm_update_{selected_id_edit}"] = False
+
             with e_col1:
-                new_title = st.text_input("Title", value=current_task["title"])
+                new_title = st.text_input("Title", value=current_task["title"], on_change=on_field_change)
                 
                 st.write("**Subject Management**")
                 existing_subjects = db.get_distinct_subjects()
                 try:
                     subj_idx = existing_subjects.index(current_task["subject"])
-                    subject_mode = st.radio("Subject Mode", ["Existing", "Rename/New"], horizontal=True, key=f"edit_mode_{selected_id_edit}")
+                    subject_mode = st.radio("Subject Mode", ["Existing", "Rename/New"], horizontal=True, key=f"edit_mode_{selected_id_edit}", on_change=on_field_change)
                     if subject_mode == "Existing":
-                        new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx)
+                        new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx, on_change=on_field_change)
                     else:
-                        new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"])
+                        new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"], on_change=on_field_change)
                 except:
-                    new_subject = st.text_input("Subject", value=current_task["subject"])
+                    new_subject = st.text_input("Subject", value=current_task["subject"], on_change=on_field_change)
 
                 new_priority = st.selectbox(
                     "Priority",
                     utils.PRIORITY_LEVELS,
-                    index=utils.PRIORITY_LEVELS.index(current_task["priority"])
+                    index=utils.PRIORITY_LEVELS.index(current_task["priority"]),
+                    on_change=on_field_change
                 )
 
             with e_col2:
@@ -153,20 +158,22 @@ def show_manage_tasks() -> None:
                 except:
                     curr_due_date = date.today()
 
-                new_due_date = st.date_input("Due Date", value=curr_due_date)
+                new_due_date = st.date_input("Due Date", value=curr_due_date, on_change=on_field_change)
                 new_hours = st.number_input(
                     "Est. Hours",
                     min_value=0.5,
                     value=float(current_task["estimated_hours"]),
-                    step=0.5
+                    step=0.5,
+                    on_change=on_field_change
                 )
                 new_status = st.selectbox(
                     "Status",
                     utils.STATUS_OPTIONS,
-                    index=utils.STATUS_OPTIONS.index(current_task["status"])
+                    index=utils.STATUS_OPTIONS.index(current_task["status"]),
+                    on_change=on_field_change
                 )
 
-            new_description = st.text_area("Description", value=current_task["description"])
+            new_description = st.text_area("Description", value=current_task["description"], on_change=on_field_change)
 
             st.write("---")
             # Step 1: Initial Action Button
@@ -190,6 +197,7 @@ def show_manage_tasks() -> None:
                 - **Due Date:** {new_due_date}
                 - **Hours:** {new_hours}
                 - **Status:** {new_status}
+                - **Description:** {new_description[:50]}{'...' if len(new_description) > 50 else ''}
                 """)
                 
                 col_c1, col_c2 = st.columns(2)

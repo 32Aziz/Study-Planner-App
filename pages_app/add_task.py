@@ -82,14 +82,13 @@ def show_add_task() -> None:
                 utils.STATUS_OPTIONS,
             )
         
-        with col_ex2:
-            st.info("ℹ️ You can change this later in the Manage Tasks page.")
-
         description = st.text_area(
             "Description / Notes",
             placeholder="Optional: add notes, resources, or instructions here.",
             height=120,
         )
+        
+        st.info("💡 **Note:** All task fields, including subject and title, can be updated later in the **Manage Tasks** page.")
 
     st.markdown("---")
     
