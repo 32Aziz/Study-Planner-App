@@ -111,11 +111,18 @@ def show_manage_tasks() -> None:
         st.markdown("### 📝 Modify Task Details")
         col_select, _ = st.columns([2, 1])
         with col_select:
+            # Helper to clear confirmation
+            def clear_review():
+                for key in list(st.session_state.keys()):
+                    if key.startswith("confirm_update_"):
+                        st.session_state[key] = False
+
             selected_id_edit = st.selectbox(
                 "Select a task to modify",
                 task_ids,
                 format_func=lambda task_id: task_labels[task_id],
                 key="edit_select",
+                on_change=clear_review
             )
 
         # Fetch current task details to pre-populate the form
@@ -131,7 +138,7 @@ def show_manage_tasks() -> None:
                 st.session_state[f"confirm_update_{selected_id_edit}"] = False
 
             with e_col1:
-                new_title = st.text_input("Title", value=current_task["title"], on_change=on_field_change)
+                new_title = st.text_input("Title", value=current_task["title"], on_change=on_field_change, key=f"title_{selected_id_edit}")
                 
                 st.write("**Subject Management**")
                 existing_subjects = db.get_distinct_subjects()
@@ -139,17 +146,18 @@ def show_manage_tasks() -> None:
                     subj_idx = existing_subjects.index(current_task["subject"])
                     subject_mode = st.radio("Subject Mode", ["Existing", "Rename/New"], horizontal=True, key=f"edit_mode_{selected_id_edit}", on_change=on_field_change)
                     if subject_mode == "Existing":
-                        new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx, on_change=on_field_change)
+                        new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx, on_change=on_field_change, key=f"subj_sel_{selected_id_edit}")
                     else:
-                        new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"], on_change=on_field_change)
+                        new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"], on_change=on_field_change, key=f"subj_new_{selected_id_edit}")
                 except:
-                    new_subject = st.text_input("Subject", value=current_task["subject"], on_change=on_field_change)
+                    new_subject = st.text_input("Subject", value=current_task["subject"], on_change=on_field_change, key=f"subj_fail_{selected_id_edit}")
 
                 new_priority = st.selectbox(
                     "Priority",
                     utils.PRIORITY_LEVELS,
                     index=utils.PRIORITY_LEVELS.index(current_task["priority"]),
-                    on_change=on_field_change
+                    on_change=on_field_change,
+                    key=f"prio_{selected_id_edit}"
                 )
 
             with e_col2:
@@ -158,22 +166,24 @@ def show_manage_tasks() -> None:
                 except:
                     curr_due_date = date.today()
 
-                new_due_date = st.date_input("Due Date", value=curr_due_date, on_change=on_field_change)
+                new_due_date = st.date_input("Due Date", value=curr_due_date, on_change=on_field_change, key=f"date_{selected_id_edit}")
                 new_hours = st.number_input(
                     "Est. Hours",
                     min_value=0.5,
                     value=float(current_task["estimated_hours"]),
                     step=0.5,
-                    on_change=on_field_change
+                    on_change=on_field_change,
+                    key=f"hours_{selected_id_edit}"
                 )
                 new_status = st.selectbox(
                     "Status",
                     utils.STATUS_OPTIONS,
                     index=utils.STATUS_OPTIONS.index(current_task["status"]),
-                    on_change=on_field_change
+                    on_change=on_field_change,
+                    key=f"status_{selected_id_edit}"
                 )
 
-            new_description = st.text_area("Description", value=current_task["description"], on_change=on_field_change)
+            new_description = st.text_area("Description", value=current_task["description"], on_change=on_field_change, key=f"desc_{selected_id_edit}")
 
             st.write("---")
             # Step 1: Initial Action Button
@@ -189,26 +199,29 @@ def show_manage_tasks() -> None:
             
             # Step 2: Confirmation Dialog
             if st.session_state.get(f"confirm_update_{selected_id_edit}", False):
-                st.warning("🔍 **Review your changes:**")
-                st.markdown(f"""
-                - **Title:** {new_title}
-                - **Subject:** {new_subject}
-                - **Priority:** {new_priority}
-                - **Due Date:** {new_due_date}
-                - **Hours:** {new_hours}
-                - **Status:** {new_status}
-                - **Description:** {new_description[:50]}{'...' if len(new_description) > 50 else ''}
-                """)
-                
-                col_c1, col_c2 = st.columns(2)
-                with col_c1:
-                    if st.button("❌ Cancel", use_container_width=True):
-                        st.session_state[f"confirm_update_{selected_id_edit}"] = False
-                        st.rerun()
-                with col_c2:
-                    confirm_final = st.button("✅ Yes, Update Now", use_container_width=True, type="primary")
+                confirm_placeholder = st.empty()
+                with confirm_placeholder.container():
+                    st.warning("🔍 **Review your changes:**")
+                    st.markdown(f"""
+                    - **Title:** {new_title}
+                    - **Subject:** {new_subject}
+                    - **Priority:** {new_priority}
+                    - **Due Date:** {new_due_date}
+                    - **Hours:** {new_hours}
+                    - **Status:** {new_status}
+                    - **Description:** {new_description[:50]}{'...' if len(new_description) > 50 else ''}
+                    """)
+                    
+                    col_c1, col_c2 = st.columns(2)
+                    with col_c1:
+                        if st.button("❌ Cancel", use_container_width=True):
+                            st.session_state[f"confirm_update_{selected_id_edit}"] = False
+                            st.rerun()
+                    with col_c2:
+                        confirm_final = st.button("✅ Yes, Update Now", use_container_width=True, type="primary")
                 
                 if confirm_final:
+                    confirm_placeholder.empty() # Remove buttons immediately
                     # Validate inputs
                     errors = utils.validate_task_input(
                         new_title,
@@ -267,7 +280,8 @@ def show_manage_tasks() -> None:
             st.write("") # Spacer
             st.write("") # Spacer
             confirm_delete = st.checkbox(
-                "Confirm deletion"
+                "Confirm deletion",
+                key=f"check_del_{selected_id_delete}"
             )
 
         if not st.session_state.get(f"confirm_delete_{selected_id_delete}", False):
@@ -284,23 +298,29 @@ def show_manage_tasks() -> None:
                     st.rerun()
         
         if st.session_state.get(f"confirm_delete_{selected_id_delete}", False):
-            st.error(f"❗ **Are you absolutely sure?** This will delete: **{current_task['title'] if current_task else selected_id_delete}**")
-            
-            col_dc1, col_dc2 = st.columns(2)
-            with col_dc1:
-                if st.button("🔙 No, Keep It", use_container_width=True):
-                    st.session_state[f"confirm_delete_{selected_id_delete}"] = False
-                    st.rerun()
-            with col_dc2:
-                final_delete = st.button("🔥 Yes, Delete Now", use_container_width=True, type="primary")
+            del_placeholder = st.empty()
+            with del_placeholder.container():
+                st.error(f"❗ **Are you absolutely sure?** This will delete: **{current_task['title'] if current_task else selected_id_delete}**")
+                
+                col_dc1, col_dc2 = st.columns(2)
+                with col_dc1:
+                    if st.button("🔙 No, Keep It", use_container_width=True):
+                        st.session_state[f"confirm_delete_{selected_id_delete}"] = False
+                        st.rerun()
+                with col_dc2:
+                    final_delete = st.button("🔥 Yes, Delete Now", use_container_width=True, type="primary")
             
             if final_delete:
+                del_placeholder.empty() # Clear buttons immediately
                 deleted = db.delete_task(selected_id_delete)
 
                 if deleted:
                     st.toast(f"🗑️ Task deleted successfully", icon="🗑️")
                     st.success(f"✅ Task has been removed. Refreshing in 3s...")
                     st.session_state[f"confirm_delete_{selected_id_delete}"] = False
+                    # Explicitly uncheck the checkbox for the next time
+                    if f"check_del_{selected_id_delete}" in st.session_state:
+                        st.session_state[f"check_del_{selected_id_delete}"] = False
                     import time
                     time.sleep(3)
                     st.rerun()
