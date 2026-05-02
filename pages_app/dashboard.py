@@ -24,7 +24,19 @@ def show_dashboard() -> None:
     stats = db.get_dashboard_stats()
 
     st.title("🏠 Dashboard")
-    st.markdown("*Your study overview at a glance*")
+    
+    # Random study quotes for motivation
+    import random
+    quotes = [
+        "Success is the sum of small efforts, repeated day in and day out.",
+        "The secret of getting ahead is getting started.",
+        "Believe you can and you're halfway there.",
+        "Don't stop until you're proud.",
+        "It always seems impossible until it's done.",
+        "Focus on being productive instead of busy.",
+        "Your future depends on what you do today."
+    ]
+    st.markdown(f"> *{random.choice(quotes)}*")
 
     # -----------------------------------------------------------------------
     # Metric cards
@@ -140,3 +152,23 @@ def show_dashboard() -> None:
 
     elif stats["total"] == 0:
         st.info("👋 Welcome! Go to Add Task to start your study plan.")
+
+    # -----------------------------------------------------------------------
+    # Export Section
+    # -----------------------------------------------------------------------
+    st.markdown("---")
+    with st.expander("📥 Data Export & Backup"):
+        st.write("Download your study data as a CSV file to keep a backup or analyze it in other tools.")
+        all_tasks = db.get_all_tasks()
+        if all_tasks:
+            df = utils.tasks_to_display_df(all_tasks)
+            csv_data = utils.convert_df_to_csv(df)
+            st.download_button(
+                label="📥 Download Study Data (CSV)",
+                data=csv_data,
+                file_name=f"study_planner_export_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        else:
+            st.warning("No data available to export.")

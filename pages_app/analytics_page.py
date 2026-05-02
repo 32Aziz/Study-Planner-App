@@ -100,6 +100,55 @@ def show_analytics() -> None:
 
         st.plotly_chart(fig2, use_container_width=True)
 
+    # -----------------------------------------------------------------------
+    # Chart 3: Priority Distribution
+    # -----------------------------------------------------------------------
+    
+    st.markdown("---")
+    row_p1, row_p2 = st.columns([1, 2])
+    
+    with row_p1:
+        st.subheader("🚩 Priority Mix")
+        priority_counts = df.groupby("priority").size().reset_index(name="Count")
+        
+        from src import utils
+        fig_p = px.pie(
+            priority_counts,
+            names="priority",
+            values="Count",
+            color="priority",
+            color_discrete_map=utils.PRIORITY_COLORS,
+            hole=0.4
+        )
+        fig_p.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font_color="#e8e8f0",
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(t=0, b=0, l=0, r=0)
+        )
+        st.plotly_chart(fig_p, use_container_width=True)
+    
+    with row_p2:
+        st.subheader("💡 Analysis Insight")
+        total_h = df["estimated_hours"].sum()
+        avg_h = df["estimated_hours"].mean()
+        high_p = len(df[df["priority"] == "High"])
+        
+        st.markdown(f"""
+        <div style="background: rgba(124, 58, 237, 0.1); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(124, 58, 237, 0.3);">
+            <ul style="margin: 0; padding-left: 1.2rem;">
+                <li>Total estimated effort: <b>{total_h:.1f} hours</b></li>
+                <li>Average effort per task: <b>{avg_h:.1f} hours</b></li>
+                <li>High priority tasks: <b>{high_p}</b> (<i>{ (high_p/len(df)*100):.1f}% of total</i>)</li>
+            </ul>
+            <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">
+                Tip: High priority tasks should ideally be less than 20% of your total workload to avoid burnout.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
     row2_col1, row2_col2 = st.columns(2)
 
     # -----------------------------------------------------------------------

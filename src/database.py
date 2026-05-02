@@ -31,7 +31,7 @@ DB_PATH = DATA_DIR / "study_planner.db"
 
 def get_connection() -> sqlite3.Connection:
     """Create and return a SQLite connection."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -88,6 +88,7 @@ def add_task(
             datetime.now().isoformat(),
         ))
 
+        clear_db_caches()
         return cursor.lastrowid
 
 
@@ -122,6 +123,46 @@ def update_task_status(task_id: int, new_status: str) -> bool:
             WHERE id = ?
         """, (new_status, task_id))
 
+        if cursor.rowcount > 0:
+            clear_db_caches()
+        return cursor.rowcount > 0
+
+
+def update_task(
+    task_id: int,
+    title: str,
+    subject: str,
+    description: str,
+    due_date: str,
+    priority: str,
+    estimated_hours: float,
+    status: str,
+) -> bool:
+    """Update all editable fields of a task. Returns True if updated."""
+    with get_connection() as conn:
+        cursor = conn.execute("""
+            UPDATE tasks
+            SET title = ?,
+                subject = ?,
+                description = ?,
+                due_date = ?,
+                priority = ?,
+                estimated_hours = ?,
+                status = ?
+            WHERE id = ?
+        """, (
+            title,
+            subject,
+            description,
+            due_date,
+            priority,
+            estimated_hours,
+            status,
+            task_id,
+        ))
+
+        if cursor.rowcount > 0:
+            clear_db_caches()
         return cursor.rowcount > 0
 
 
@@ -133,6 +174,8 @@ def delete_task(task_id: int) -> bool:
             WHERE id = ?
         """, (task_id,))
 
+        if cursor.rowcount > 0:
+            clear_db_caches()
         return cursor.rowcount > 0
 
 
@@ -206,29 +249,18 @@ def filter_tasks(
 # Dashboard helpers
 # ---------------------------------------------------------------------------
 
+import streamlit as st
+
+@st.cache_data(ttl=60)
 def get_dashboard_stats() -> dict:
     """Return totals used by the dashboard page and sidebar."""
     today = datetime.now().date().isoformat()
 
     with get_connection() as conn:
-        total = conn.execute("""
-            SELECT COUNT(*) FROM tasks
-        """).fetchone()[0]
-
-        completed = conn.execute("""
-            SELECT COUNT(*) FROM tasks
-            WHERE status = 'Completed'
-        """).fetchone()[0]
-
-        pending = conn.execute("""
-            SELECT COUNT(*) FROM tasks
-            WHERE status != 'Completed'
-        """).fetchone()[0]
-
-        overdue = conn.execute("""
-            SELECT COUNT(*) FROM tasks
-            WHERE due_date < ? AND status != 'Completed'
-        """, (today,)).fetchone()[0]
+        total = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+        completed = conn.execute("SELECT COUNT(*) FROM tasks WHERE status = 'Completed'").fetchone()[0]
+        pending = conn.execute("SELECT COUNT(*) FROM tasks WHERE status != 'Completed'").fetchone()[0]
+        overdue = conn.execute("SELECT COUNT(*) FROM tasks WHERE due_date < ? AND status != 'Completed'", (today,)).fetchone()[0]
 
         upcoming_rows = conn.execute("""
             SELECT * FROM tasks
@@ -246,6 +278,7 @@ def get_dashboard_stats() -> dict:
     }
 
 
+@st.cache_data(ttl=300)
 def get_distinct_subjects() -> list[str]:
     """Return all unique subjects in alphabetical order."""
     with get_connection() as conn:
@@ -256,3 +289,9 @@ def get_distinct_subjects() -> list[str]:
         """).fetchall()
 
         return [row[0] for row in rows]
+
+
+def clear_db_caches():
+    """Clear streamlit caches related to database reads."""
+    get_dashboard_stats.clear()
+    get_distinct_subjects.clear()

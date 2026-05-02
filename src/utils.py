@@ -195,3 +195,10 @@ def tasks_to_display_df(tasks: list[dict]):
     columns = [col for col in columns if col in df.columns]
 
     return df[columns]
+
+
+def convert_df_to_csv(df) -> bytes:
+    """Convert a DataFrame to a CSV string encoded as bytes."""
+    if df.empty:
+        return b""
+    return df.to_csv(index=False).encode("utf-8")

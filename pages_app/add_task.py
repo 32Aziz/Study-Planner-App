@@ -37,10 +37,19 @@ def show_add_task() -> None:
                 placeholder="e.g. Chapter 5 Calculus Review",
             )
 
-            subject = st.text_input(
-                "Subject *",
-                placeholder="e.g. Mathematics",
-            )
+            # Get existing subjects for autocomplete
+            existing_subjects = db.get_distinct_subjects()
+            
+            # Using a selectbox for existing OR a text_input for new
+            # Streamlit doesn't have an easy "editable selectbox" but we can use a combination
+            subject_choice = st.radio("Subject", ["Existing", "New"], horizontal=True)
+            if subject_choice == "Existing" and existing_subjects:
+                subject = st.selectbox("Select Subject", existing_subjects)
+            else:
+                subject = st.text_input(
+                    "New Subject *",
+                    placeholder="e.g. Mathematics",
+                )
 
             priority = st.selectbox(
                 "Priority *",

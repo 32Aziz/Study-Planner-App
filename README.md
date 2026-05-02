@@ -28,6 +28,8 @@ The goal of this project is to build a **realistic and useful Streamlit applicat
 | **Analytics (Data Science Bonus)** | Interactive charts showing workload and trends |
 | **AI Suggestions (AI Bonus)** | Personalized study plan using Gemini or rule-based logic |
 | **Database** | SQLite database with automatic setup |
+| **Export/Backup** | Export your study data to CSV for external analysis |
+| **Performance** | Optimized with `st.cache_data` for lightning-fast metrics |
 
 ---
 
@@ -153,6 +155,7 @@ tasks(
 * **SQLite** → lightweight, no server needed
 * **Modular structure** → separates UI, logic, and data
 * **Rule-based fallback AI** → ensures app works without API
+* **Caching (`st.cache_data`)** → optimizes database reads for faster page loads
 
 ---
 
