@@ -11,6 +11,7 @@ This page:
 """
 
 import streamlit as st
+from datetime import datetime, date
 
 from src import database as db
 from src import utils
@@ -90,29 +91,32 @@ def show_manage_tasks() -> None:
     )
 
     st.markdown("---")
-    st.subheader("✏️ Update / Delete Task")
+    st.subheader("⚙️ Task Action Center")
+    st.markdown("*Refine your study plan by editing or removing tasks*")
 
     task_ids = [task["id"] for task in tasks]
-
     task_labels = {
         task["id"]: f"[{task['id']}] {task['title']} — {task['subject']}"
         for task in tasks
     }
 
-    col_update, col_delete = st.columns(2)
+    # Use tabs for a cleaner, more focused design
+    tab_edit, tab_delete = st.tabs(["✏️ Edit Task", "🗑️ Delete Task"])
 
     # -----------------------------------------------------------------------
-    # Edit Task form
+    # Edit Task Tab
     # -----------------------------------------------------------------------
 
-    with col_update:
-        st.markdown("**Edit Task Details**")
-        selected_id_edit = st.selectbox(
-            "Select Task to Edit",
-            task_ids,
-            format_func=lambda task_id: task_labels[task_id],
-            key="edit_select",
-        )
+    with tab_edit:
+        st.markdown("### 📝 Modify Task Details")
+        col_select, _ = st.columns([2, 1])
+        with col_select:
+            selected_id_edit = st.selectbox(
+                "Select a task to modify",
+                task_ids,
+                format_func=lambda task_id: task_labels[task_id],
+                key="edit_select",
+            )
 
         # Fetch current task details to pre-populate the form
         current_task = next((t for t in tasks if t["id"] == selected_id_edit), None)
@@ -142,12 +146,9 @@ def show_manage_tasks() -> None:
                     )
 
                 with e_col2:
-                    # Convert string date to date object for date_input
-                    from datetime import datetime
                     try:
                         curr_due_date = datetime.fromisoformat(current_task["due_date"]).date()
                     except:
-                        from datetime import date
                         curr_due_date = date.today()
 
                     new_due_date = st.date_input("Due Date", value=curr_due_date)
@@ -202,32 +203,41 @@ def show_manage_tasks() -> None:
                         st.error("❌ Failed to update task.")
 
     # -----------------------------------------------------------------------
-    # Delete task form
+    # Delete Task Tab
     # -----------------------------------------------------------------------
 
-    with col_delete:
+    with tab_delete:
+        st.markdown("### 🗑️ Remove Task")
+        
+        # Warning box for deletion
+        st.warning("⚠️ **Caution:** Deleting a task is permanent and cannot be undone.")
+        
         with st.form("delete_task_form"):
-            st.markdown("**Delete Task**")
+            col_d1, col_d2 = st.columns([2, 1])
+            with col_d1:
+                selected_id_delete = st.selectbox(
+                    "Select Task to Delete",
+                    task_ids,
+                    format_func=lambda task_id: task_labels[task_id],
+                    key="delete_select",
+                )
 
-            selected_id_delete = st.selectbox(
-                "Select Task",
-                task_ids,
-                format_func=lambda task_id: task_labels[task_id],
-                key="delete_select",
-            )
-
-            confirm_delete = st.checkbox(
-                "I confirm I want to permanently delete this task."
-            )
+            with col_d2:
+                st.write("") # Spacer
+                st.write("") # Spacer
+                confirm_delete = st.checkbox(
+                    "Confirm deletion"
+                )
 
             delete_submitted = st.form_submit_button(
-                "🗑️ Delete",
+                "🗑️ Delete Permanently",
                 use_container_width=True,
+                type="secondary",
             )
 
         if delete_submitted:
             if not confirm_delete:
-                st.warning("Please tick the confirmation checkbox first.")
+                st.error("Please check the confirmation box to delete.")
                 return
 
             deleted = db.delete_task(selected_id_delete)
