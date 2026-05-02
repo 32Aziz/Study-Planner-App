@@ -4,6 +4,7 @@ A full-featured **Study Planner web application** built using **Python, Streamli
 
 The app helps students manage study tasks, track deadlines, visualize workload, and receive intelligent study suggestions using AI.
 
+Live Demo: https://study-planner-app.streamlit.app/
 ---
 
 ## 🎯 Project Goal
