@@ -193,79 +193,90 @@ def show_manage_tasks() -> None:
             if st.session_state.get(f"last_edit_vals_{selected_id_edit}") != current_vals:
                 st.session_state[f"confirm_update_{selected_id_edit}"] = False
 
-            st.write("---")
-            # Step 1: Initial Action Button
-            if not st.session_state.get(f"confirm_update_{selected_id_edit}", False):
-                update_triggered = st.button(
-                    "💾 Save Changes to Task",
-                    use_container_width=True,
-                    type="primary",
-                )
-                if update_triggered:
-                    st.session_state[f"confirm_update_{selected_id_edit}"] = True
-                    st.session_state[f"last_edit_vals_{selected_id_edit}"] = current_vals
-                    st.rerun()
+            # --- Action Buttons Section ---
+            st.markdown("---")
+            action_placeholder = st.empty()
             
-            # Step 2: Confirmation Dialog
-            if st.session_state.get(f"confirm_update_{selected_id_edit}", False):
-                confirm_placeholder = st.empty()
-                with confirm_placeholder.container():
-                    st.warning("🔍 **Review your changes:**")
-                    st.markdown(f"""
-                    - **Title:** {new_title}
-                    - **Subject:** {new_subject}
-                    - **Priority:** {new_priority}
-                    - **Due Date:** {new_due_date}
-                    - **Hours:** {new_hours}
-                    - **Status:** {new_status}
-                    - **Description:** {new_description[:50]}{'...' if len(new_description) > 50 else ''}
-                    """)
+            with action_placeholder.container():
+                # Step 1: Initial "Save" / "Review" Button
+                if not st.session_state.get(f"confirm_update_{selected_id_edit}", False):
+                    update_triggered = st.button(
+                        "🔍 Review & Save Changes",
+                        use_container_width=True,
+                        type="primary",
+                        key=f"save_btn_{selected_id_edit}"
+                    )
+                    if update_triggered:
+                        st.session_state[f"confirm_update_{selected_id_edit}"] = True
+                        st.session_state[f"last_edit_vals_{selected_id_edit}"] = current_vals
+                        st.rerun()
+                
+                # Step 2: Confirmation Dialog (Only shows if values haven't been touched since clicking Save)
+                else:
+                    st.info("💡 **Tip:** If you change any field above (and press Enter/click away), this review will reset automatically.")
+                    st.warning("🔍 **Review your changes before final save:**")
+                    
+                    # Layout for review details
+                    r_col1, r_col2 = st.columns([2, 1])
+                    with r_col1:
+                        st.markdown(f"""
+                        - **Title:** {new_title}
+                        - **Subject:** {new_subject}
+                        - **Priority:** {new_priority}
+                        - **Due Date:** {new_due_date}
+                        - **Status:** {new_status}
+                        """)
+                    with r_col2:
+                        st.markdown(f"**Est. Hours:** {new_hours}")
+                        st.markdown(f"**Description:** {new_description[:100]}{'...' if len(new_description) > 100 else ''}")
+
+                    st.write("") # Spacer
                     
                     col_c1, col_c2 = st.columns(2)
                     with col_c1:
-                        if st.button("❌ Cancel", use_container_width=True):
+                        if st.button("❌ Cancel / Back to Edit", use_container_width=True, key=f"cancel_btn_{selected_id_edit}"):
                             st.session_state[f"confirm_update_{selected_id_edit}"] = False
                             st.rerun()
                     with col_c2:
-                        confirm_final = st.button("✅ Yes, Update Now", use_container_width=True, type="primary")
-                
-                if confirm_final:
-                    confirm_placeholder.empty() # Remove buttons immediately
-                    # Validate inputs
-                    errors = utils.validate_task_input(
-                        new_title,
-                        new_subject,
-                        new_due_date,
-                        new_hours,
-                    )
-
-                    if errors:
-                        for error in errors:
-                            st.error(f"❌ {error}")
-                        st.session_state[f"confirm_update_{selected_id_edit}"] = False
-                    else:
-                        updated = db.update_task(
-                            selected_id_edit,
-                            new_title.strip(),
-                            new_subject.strip(),
-                            new_description.strip(),
-                            new_due_date.isoformat(),
-                            new_priority,
+                        confirm_final = st.button("🚀 Yes, Update Database Now", use_container_width=True, type="primary", key=f"confirm_btn_{selected_id_edit}")
+                    
+                    if confirm_final:
+                        action_placeholder.empty() # Clear everything immediately
+                        # Validate inputs
+                        errors = utils.validate_task_input(
+                            new_title,
+                            new_subject,
+                            new_due_date,
                             new_hours,
-                            new_status
                         )
 
-                        if updated:
-                            st.toast(f"✅ Task '{new_title}' updated!", icon="💾")
-                            st.success(f"✨ Task updated successfully. Refreshing in 3s...")
-                            st.balloons()
+                        if errors:
+                            for error in errors:
+                                st.error(f"❌ {error}")
                             st.session_state[f"confirm_update_{selected_id_edit}"] = False
-                            import time
-                            time.sleep(3)
-                            st.rerun()
                         else:
-                            st.error("❌ Failed to update task.")
-                            st.session_state[f"confirm_update_{selected_id_edit}"] = False
+                            updated = db.update_task(
+                                selected_id_edit,
+                                new_title.strip(),
+                                new_subject.strip(),
+                                new_description.strip(),
+                                new_due_date.isoformat(),
+                                new_priority,
+                                new_hours,
+                                new_status
+                            )
+
+                            if updated:
+                                st.toast(f"✅ Task updated!", icon="💾")
+                                st.success(f"✨ Changes saved successfully. Refreshing in 3s...")
+                                st.balloons()
+                                st.session_state[f"confirm_update_{selected_id_edit}"] = False
+                                import time
+                                time.sleep(3)
+                                st.rerun()
+                            else:
+                                st.error("❌ Failed to update task.")
+                                st.session_state[f"confirm_update_{selected_id_edit}"] = False
 
     # -----------------------------------------------------------------------
     # Delete Task Tab
