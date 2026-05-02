@@ -182,8 +182,26 @@ with st.sidebar:
 
 
 # ---------------------------------------------------------------------------
-# Page router
+# Page router & Scroll Reset
 # ---------------------------------------------------------------------------
+
+# Detect page change to reset scroll position
+if "current_page" not in st.session_state:
+    st.session_state.current_page = page
+
+if st.session_state.current_page != page:
+    st.session_state.current_page = page
+    st.markdown(
+        """
+        <script>
+            var body = window.parent.document.querySelector(".main");
+            if (body) {
+                body.scrollTo(0,0);
+            }
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
 
 if page == "🏠 Dashboard":
     show_dashboard()
