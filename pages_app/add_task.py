@@ -37,20 +37,6 @@ def show_add_task() -> None:
                 placeholder="e.g. Chapter 5 Calculus Review",
             )
 
-            # Get existing subjects for autocomplete
-            existing_subjects = db.get_distinct_subjects()
-            
-            # Using a selectbox for existing OR a text_input for new
-            # Streamlit doesn't have an easy "editable selectbox" but we can use a combination
-            subject_choice = st.radio("Subject", ["Existing", "New"], horizontal=True)
-            if subject_choice == "Existing" and existing_subjects:
-                subject = st.selectbox("Select Subject", existing_subjects)
-            else:
-                subject = st.text_input(
-                    "New Subject *",
-                    placeholder="e.g. Mathematics",
-                )
-
             priority = st.selectbox(
                 "Priority *",
                 utils.PRIORITY_LEVELS,
@@ -70,22 +56,38 @@ def show_add_task() -> None:
                 step=0.5,
             )
 
+        st.markdown("---")
+        # --- Subject Selection (Reactive, outside form or handled by session state) ---
+        st.subheader("📘 Subject")
+        existing_subjects = db.get_distinct_subjects()
+        subject_mode = st.radio("Subject Mode", ["Use Existing", "Create New"], horizontal=True, key="add_subj_mode")
+        
+        if subject_mode == "Use Existing" and existing_subjects:
+            subject = st.selectbox("Select Subject", existing_subjects)
+        else:
+            subject = st.text_input("Enter New Subject *", placeholder="e.g. Mathematics")
+
+        st.markdown("---")
+
+        with st.form("add_task_form_details"):
+            st.subheader("📝 Additional Details")
+            
             status_init = st.selectbox(
                 "Initial Status",
                 utils.STATUS_OPTIONS,
             )
 
-        description = st.text_area(
-            "Description / Notes",
-            placeholder="Optional: add notes, resources, or instructions here.",
-            height=100,
-        )
+            description = st.text_area(
+                "Description / Notes",
+                placeholder="Optional: add notes, resources, or instructions here.",
+                height=100,
+            )
 
-        submitted = st.form_submit_button(
-            "✅ Add Task",
-            use_container_width=True,
-            type="primary",
-        )
+            submitted = st.form_submit_button(
+                "✅ Add Task to Plan",
+                use_container_width=True,
+                type="primary",
+            )
 
     # -----------------------------------------------------------------------
     # Validate and save
@@ -117,7 +119,8 @@ def show_add_task() -> None:
             if status_init != "Pending":
                 db.update_task_status(task_id, status_init)
 
-            st.success(f"🎉 Task '{title.strip()}' added successfully! ID: {task_id}")
+            st.toast(f"✅ Task '{title.strip()}' added successfully!", icon="🎉")
+            st.success(f"🎉 Task '{title.strip()}' has been added to your study plan.")
             st.balloons()
 
         except Exception as error:

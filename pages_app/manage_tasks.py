@@ -129,15 +129,20 @@ def show_manage_tasks() -> None:
                 with e_col1:
                     new_title = st.text_input("Title", value=current_task["title"])
                     
-                    # Subject selection improvement
+                    # Moved outside the form to be reactive
+                    st.write("---")
+                    st.write("**Subject Management**")
                     existing_subjects = db.get_distinct_subjects()
                     try:
                         subj_idx = existing_subjects.index(current_task["subject"])
-                        new_subject = st.selectbox("Subject", existing_subjects, index=subj_idx)
-                        if st.checkbox("Rename/Change to new subject?"):
-                            new_subject = st.text_input("New Subject Name", value=current_task["subject"])
-                    except (ValueError, IndexError):
+                        subject_mode = st.radio("Subject Mode", ["Existing", "Rename/New"], horizontal=True, key=f"edit_mode_{selected_id_edit}")
+                        if subject_mode == "Existing":
+                            new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx)
+                        else:
+                            new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"])
+                    except:
                         new_subject = st.text_input("Subject", value=current_task["subject"])
+                    st.write("---")
 
                     new_priority = st.selectbox(
                         "Priority",
@@ -196,8 +201,15 @@ def show_manage_tasks() -> None:
                         new_status
                     )
 
+                    # Confirmation step
+                    st.info("💡 Review your changes above. Clicking 'Save Changes' will update the database.")
+                    
                     if updated:
-                        st.success(f"✅ Task '{new_title}' updated successfully.")
+                        st.toast(f"✅ Task '{new_title}' updated!", icon="💾")
+                        st.success(f"✨ Task '{new_title}' updated successfully.")
+                        st.balloons()
+                        import time
+                        time.sleep(1.5)
                         st.rerun()
                     else:
                         st.error("❌ Failed to update task.")
@@ -243,7 +255,10 @@ def show_manage_tasks() -> None:
             deleted = db.delete_task(selected_id_delete)
 
             if deleted:
-                st.success(f"🗑️ Task {selected_id_delete} deleted.")
+                st.toast(f"🗑️ Task deleted successfully", icon="🗑️")
+                st.success(f"✅ Task {selected_id_delete} has been removed.")
+                import time
+                time.sleep(1.5)
                 st.rerun()
             else:
                 st.error("❌ Task not found.")
