@@ -182,26 +182,25 @@ with st.sidebar:
 
 
 # ---------------------------------------------------------------------------
-# Page router & Scroll Reset
+# Page router & Auto-scroll
 # ---------------------------------------------------------------------------
 
-# Detect page change to reset scroll position
-if "current_page" not in st.session_state:
-    st.session_state.current_page = page
-
-if st.session_state.current_page != page:
-    st.session_state.current_page = page
-    st.markdown(
-        """
-        <script>
-            var body = window.parent.document.querySelector(".main");
-            if (body) {
-                body.scrollTo(0,0);
-            }
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
+# Inject JavaScript to scroll to top on every page change/rerun
+st.components.v1.html(
+    """
+    <script>
+        var body = window.parent.document.querySelector(".main");
+        if (body) {
+            body.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'auto'
+            });
+        }
+    </script>
+    """,
+    height=0,
+)
 
 if page == "🏠 Dashboard":
     show_dashboard()
