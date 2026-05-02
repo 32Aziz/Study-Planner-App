@@ -26,9 +26,9 @@ def show_add_task() -> None:
     # Add task form
     # -----------------------------------------------------------------------
 
-    with st.form("add_task_form", clear_on_submit=True):
-        st.subheader("📝 Task Details")
-
+    # --- Section 1: Main Task Information ---
+    with st.container():
+        st.subheader("📝 Main Task Info")
         col1, col2 = st.columns(2)
 
         with col1:
@@ -56,38 +56,51 @@ def show_add_task() -> None:
                 step=0.5,
             )
 
-        st.markdown("---")
-        # --- Subject Selection (Reactive, outside form or handled by session state) ---
-        st.subheader("📘 Subject")
+    st.markdown("---")
+    
+    # --- Section 2: Subject Selection (Fully Reactive) ---
+    with st.container():
+        st.subheader("📘 Subject Selection")
         existing_subjects = db.get_distinct_subjects()
-        subject_mode = st.radio("Subject Mode", ["Use Existing", "Create New"], horizontal=True, key="add_subj_mode")
+        subject_mode = st.radio("How would you like to add the subject?", ["Use Existing", "Create New"], horizontal=True, key="add_subj_mode_new")
         
         if subject_mode == "Use Existing" and existing_subjects:
-            subject = st.selectbox("Select Subject", existing_subjects)
+            subject = st.selectbox("Select from your subjects", existing_subjects)
         else:
-            subject = st.text_input("Enter New Subject *", placeholder="e.g. Mathematics")
+            subject = st.text_input("Enter New Subject Name *", placeholder="e.g. Mathematics")
 
-        st.markdown("---")
+    st.markdown("---")
 
-        with st.form("add_task_form_details"):
-            st.subheader("📝 Additional Details")
-            
+    # --- Section 3: Extra Details ---
+    with st.container():
+        st.subheader("📄 Additional Details")
+        col_ex1, col_ex2 = st.columns([1, 1])
+        
+        with col_ex1:
             status_init = st.selectbox(
                 "Initial Status",
                 utils.STATUS_OPTIONS,
             )
+        
+        with col_ex2:
+            st.info("ℹ️ You can change this later in the Manage Tasks page.")
 
-            description = st.text_area(
-                "Description / Notes",
-                placeholder="Optional: add notes, resources, or instructions here.",
-                height=100,
-            )
+        description = st.text_area(
+            "Description / Notes",
+            placeholder="Optional: add notes, resources, or instructions here.",
+            height=120,
+        )
 
-            submitted = st.form_submit_button(
-                "✅ Add Task to Plan",
-                use_container_width=True,
-                type="primary",
-            )
+    st.markdown("---")
+    
+    # --- Action Button ---
+    col_btn_1, col_btn_2, col_btn_3 = st.columns([1, 2, 1])
+    with col_btn_2:
+        submitted = st.button(
+            "🚀 Create Study Task",
+            use_container_width=True,
+            type="primary",
+        )
 
     # -----------------------------------------------------------------------
     # Validate and save
@@ -120,8 +133,11 @@ def show_add_task() -> None:
                 db.update_task_status(task_id, status_init)
 
             st.toast(f"✅ Task '{title.strip()}' added successfully!", icon="🎉")
-            st.success(f"🎉 Task '{title.strip()}' has been added to your study plan.")
+            st.success(f"🎉 Task '{title.strip()}' has been added to your study plan. Refreshing in 3s...")
             st.balloons()
+            import time
+            time.sleep(3)
+            st.rerun()
 
         except Exception as error:
             st.error(f"❌ Database error: {error}")
