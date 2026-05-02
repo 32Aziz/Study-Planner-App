@@ -129,30 +129,36 @@ def show_manage_tasks() -> None:
         current_task = next((t for t in tasks if t["id"] == selected_id_edit), None)
 
         if current_task:
-            # Removed st.form to make Subject Mode and other fields fully reactive
+            # Step 0: Define a clear interaction callback
+            def reset_review():
+                st.session_state[f"confirm_update_{selected_id_edit}"] = False
+                if f"last_edit_vals_{selected_id_edit}" in st.session_state:
+                    del st.session_state[f"last_edit_vals_{selected_id_edit}"]
+
             st.markdown("---")
             e_col1, e_col2 = st.columns(2)
 
             with e_col1:
-                new_title = st.text_input("Title", value=current_task["title"], key=f"title_{selected_id_edit}")
+                new_title = st.text_input("Title", value=current_task["title"], key=f"title_{selected_id_edit}", on_change=reset_review)
                 
                 st.write("**Subject Management**")
                 existing_subjects = db.get_distinct_subjects()
                 try:
                     subj_idx = existing_subjects.index(current_task["subject"])
-                    subject_mode = st.radio("Subject Mode", ["Existing", "Rename/New"], horizontal=True, key=f"edit_mode_{selected_id_edit}")
+                    subject_mode = st.radio("Subject Mode", ["Existing", "Rename/New"], horizontal=True, key=f"edit_mode_{selected_id_edit}", on_change=reset_review)
                     if subject_mode == "Existing":
-                        new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx, key=f"subj_sel_{selected_id_edit}")
+                        new_subject = st.selectbox("Select Subject", existing_subjects, index=subj_idx, key=f"subj_sel_{selected_id_edit}", on_change=reset_review)
                     else:
-                        new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"], key=f"subj_new_{selected_id_edit}")
+                        new_subject = st.text_input("New/Modified Subject Name", value=current_task["subject"], key=f"subj_new_{selected_id_edit}", on_change=reset_review)
                 except:
-                    new_subject = st.text_input("Subject", value=current_task["subject"], key=f"subj_fail_{selected_id_edit}")
+                    new_subject = st.text_input("Subject", value=current_task["subject"], key=f"subj_fail_{selected_id_edit}", on_change=reset_review)
 
                 new_priority = st.selectbox(
                     "Priority",
                     utils.PRIORITY_LEVELS,
                     index=utils.PRIORITY_LEVELS.index(current_task["priority"]),
-                    key=f"prio_{selected_id_edit}"
+                    key=f"prio_{selected_id_edit}",
+                    on_change=reset_review
                 )
 
             with e_col2:
@@ -161,122 +167,108 @@ def show_manage_tasks() -> None:
                 except:
                     curr_due_date = date.today()
 
-                new_due_date = st.date_input("Due Date", value=curr_due_date, key=f"date_{selected_id_edit}")
+                new_due_date = st.date_input("Due Date", value=curr_due_date, key=f"date_{selected_id_edit}", on_change=reset_review)
                 new_hours = st.number_input(
                     "Est. Hours",
                     min_value=0.5,
                     value=float(current_task["estimated_hours"]),
                     step=0.5,
-                    key=f"hours_{selected_id_edit}"
+                    key=f"hours_{selected_id_edit}",
+                    on_change=reset_review
                 )
                 new_status = st.selectbox(
                     "Status",
                     utils.STATUS_OPTIONS,
                     index=utils.STATUS_OPTIONS.index(current_task["status"]),
-                    key=f"status_{selected_id_edit}"
+                    key=f"status_{selected_id_edit}",
+                    on_change=reset_review
                 )
 
-            new_description = st.text_area("Description", value=current_task["description"], key=f"desc_{selected_id_edit}")
+            new_description = st.text_area("Description", value=current_task["description"], key=f"desc_{selected_id_edit}", on_change=reset_review)
 
-            # --- Logic to check if any field has changed since "Save" was clicked ---
-            current_vals = {
-                "title": new_title,
-                "subject": new_subject,
-                "priority": new_priority,
-                "due_date": new_due_date,
-                "hours": new_hours,
-                "status": new_status,
-                "desc": new_description
-            }
+            # Logic to check if any field has changed since "Save" was clicked
+            current_vals = [new_title, new_subject, new_priority, new_due_date, new_hours, new_status, new_description]
             
-            # If current values don't match what was "saved" for review, hide the review
             if st.session_state.get(f"last_edit_vals_{selected_id_edit}") != current_vals:
                 st.session_state[f"confirm_update_{selected_id_edit}"] = False
 
-            # --- Action Buttons Section ---
-            st.markdown("---")
-            action_placeholder = st.empty()
+            st.write("---")
+            # Step 1: Initial Action Button
+            if not st.session_state.get(f"confirm_update_{selected_id_edit}", False):
+                update_triggered = st.button(
+                    "💾 Save Changes to Task",
+                    use_container_width=True,
+                    type="primary",
+                )
+                if update_triggered:
+                    st.session_state[f"confirm_update_{selected_id_edit}"] = True
+                    st.session_state[f"last_edit_vals_{selected_id_edit}"] = current_vals
+                    st.rerun()
             
-            with action_placeholder.container():
-                # Step 1: Initial "Save" / "Review" Button
-                if not st.session_state.get(f"confirm_update_{selected_id_edit}", False):
-                    update_triggered = st.button(
-                        "🔍 Review & Save Changes",
-                        use_container_width=True,
-                        type="primary",
-                        key=f"save_btn_{selected_id_edit}"
-                    )
-                    if update_triggered:
-                        st.session_state[f"confirm_update_{selected_id_edit}"] = True
-                        st.session_state[f"last_edit_vals_{selected_id_edit}"] = current_vals
-                        st.rerun()
-                
-                # Step 2: Confirmation Dialog (Only shows if values haven't been touched since clicking Save)
-                else:
-                    st.info("💡 **Tip:** If you change any field above (and press Enter/click away), this review will reset automatically.")
-                    st.warning("🔍 **Review your changes before final save:**")
+            # Step 2: Confirmation Dialog
+            if st.session_state.get(f"confirm_update_{selected_id_edit}", False):
+                confirm_placeholder = st.empty()
+                with confirm_placeholder.container():
+                    st.warning("🔍 **Review your changes:**")
+                    st.markdown(f"""
+                    - **Title:** {new_title}
+                    - **Subject:** {new_subject}
+                    - **Priority:** {new_priority}
+                    - **Due Date:** {new_due_date}
+                    - **Hours:** {new_hours}
+                    - **Status:** {new_status}
+                    - **Description:** {new_description[:50]}{'...' if len(new_description) > 50 else ''}
+                    """)
                     
-                    # Layout for review details
-                    r_col1, r_col2 = st.columns([2, 1])
-                    with r_col1:
-                        st.markdown(f"""
-                        - **Title:** {new_title}
-                        - **Subject:** {new_subject}
-                        - **Priority:** {new_priority}
-                        - **Due Date:** {new_due_date}
-                        - **Status:** {new_status}
-                        """)
-                    with r_col2:
-                        st.markdown(f"**Est. Hours:** {new_hours}")
-                        st.markdown(f"**Description:** {new_description[:100]}{'...' if len(new_description) > 100 else ''}")
-
-                    st.write("") # Spacer
-                    
-                    col_c1, col_c2 = st.columns(2)
+                    col_c1, col_c2, col_c3 = st.columns(3)
                     with col_c1:
-                        if st.button("❌ Cancel / Back to Edit", use_container_width=True, key=f"cancel_btn_{selected_id_edit}"):
-                            st.session_state[f"confirm_update_{selected_id_edit}"] = False
+                        if st.button("❌ Cancel Review", use_container_width=True):
+                            reset_review()
                             st.rerun()
                     with col_c2:
-                        confirm_final = st.button("🚀 Yes, Update Database Now", use_container_width=True, type="primary", key=f"confirm_btn_{selected_id_edit}")
-                    
-                    if confirm_final:
-                        action_placeholder.empty() # Clear everything immediately
-                        # Validate inputs
-                        errors = utils.validate_task_input(
-                            new_title,
-                            new_subject,
-                            new_due_date,
+                        if st.button("✏️ Edit More", use_container_width=True):
+                            reset_review()
+                            st.rerun()
+                    with col_c3:
+                        confirm_final = st.button("✅ Yes, Update Now", use_container_width=True, type="primary")
+                
+                if confirm_final:
+                    confirm_placeholder.empty() # Remove buttons immediately
+                    # Validate inputs
+                    errors = utils.validate_task_input(
+                        new_title,
+                        new_subject,
+                        new_due_date,
+                        new_hours,
+                    )
+
+                    if errors:
+                        for error in errors:
+                            st.error(f"❌ {error}")
+                        st.session_state[f"confirm_update_{selected_id_edit}"] = False
+                    else:
+                        updated = db.update_task(
+                            selected_id_edit,
+                            new_title.strip(),
+                            new_subject.strip(),
+                            new_description.strip(),
+                            new_due_date.isoformat(),
+                            new_priority,
                             new_hours,
+                            new_status
                         )
 
-                        if errors:
-                            for error in errors:
-                                st.error(f"❌ {error}")
+                        if updated:
+                            st.toast(f"✅ Task '{new_title}' updated!", icon="💾")
+                            st.success(f"✨ Task updated successfully. Refreshing in 3s...")
+                            st.balloons()
                             st.session_state[f"confirm_update_{selected_id_edit}"] = False
+                            import time
+                            time.sleep(3)
+                            st.rerun()
                         else:
-                            updated = db.update_task(
-                                selected_id_edit,
-                                new_title.strip(),
-                                new_subject.strip(),
-                                new_description.strip(),
-                                new_due_date.isoformat(),
-                                new_priority,
-                                new_hours,
-                                new_status
-                            )
-
-                            if updated:
-                                st.toast(f"✅ Task updated!", icon="💾")
-                                st.success(f"✨ Changes saved successfully. Refreshing in 3s...")
-                                st.balloons()
-                                st.session_state[f"confirm_update_{selected_id_edit}"] = False
-                                import time
-                                time.sleep(3)
-                                st.rerun()
-                            else:
-                                st.error("❌ Failed to update task.")
-                                st.session_state[f"confirm_update_{selected_id_edit}"] = False
+                            st.error("❌ Failed to update task.")
+                            st.session_state[f"confirm_update_{selected_id_edit}"] = False
 
     # -----------------------------------------------------------------------
     # Delete Task Tab
