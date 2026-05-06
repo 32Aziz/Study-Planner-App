@@ -7,7 +7,7 @@ The app helps students manage study tasks, track deadlines, visualize workload, 
 Live Demo: https://study-planner-app.streamlit.app/
 ---
 
-## 🎯 Project Goal
+## Project Goal
 
 The goal of this project is to build a **realistic and useful Streamlit application** that demonstrates:
 
@@ -19,7 +19,7 @@ The goal of this project is to build a **realistic and useful Streamlit applicat
 
 ---
 
-## 🚀 Features
+## Features
 
 | Feature | Description |
 |--------|------------|
@@ -34,7 +34,7 @@ The goal of this project is to build a **realistic and useful Streamlit applicat
 
 ---
 
-## 🗂 Project Structure
+## Project Structure
 
 ```
 
@@ -64,7 +64,7 @@ study-planner/
 
 ---
 
-## ⚙️ Setup Instructions
+## Setup Instructions
 
 ### 1. Install dependencies
 
@@ -96,7 +96,7 @@ streamlit run app.py
 
 ---
 
-## 🧠 AI Feature (Bonus)
+## AI Feature (Bonus)
 
 The app includes an **AI-powered study suggestion system**:
 
@@ -118,7 +118,7 @@ Then generates:
 
 ---
 
-## 📊 Data Science Feature (Bonus)
+## Data Science Feature (Bonus)
 
 The Analytics page includes:
 
@@ -131,7 +131,7 @@ This helps users understand their study patterns and workload distribution.
 
 ---
 
-## 🗃️ Database
+## Database
 
 SQLite is used for simplicity and portability.
 
@@ -150,7 +150,7 @@ tasks(
 
 ---
 
-## 🧩 Design Decisions
+## Design Decisions
 
 * **Streamlit** → fast development, easy UI, ideal for demos
 * **SQLite** → lightweight, no server needed
@@ -160,7 +160,7 @@ tasks(
 
 ---
 
-## 🤖 AI Usage
+## AI Usage
 
 AI tools were used to:
 
@@ -173,7 +173,7 @@ All generated code was reviewed, tested, and understood before final use.
 
 ---
 
-## ✅ Requirements Checklist
+## Requirements Checklist
 
 ✔ Streamlit app
 
@@ -197,7 +197,7 @@ All generated code was reviewed, tested, and understood before final use.
 
 ---
 
-## ☁️ Deployment
+## Deployment
 
 The app can be deployed using **Streamlit Community Cloud**:
 
